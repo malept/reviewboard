@@ -3,7 +3,6 @@ from __future__ import absolute_import, unicode_literals
 
 import logging
 import os
-import re
 from datetime import datetime
 from shutil import rmtree
 from tempfile import mkdtemp
@@ -23,38 +22,14 @@ from reviewboard.scmtools.core import (Branch, Commit,
 from reviewboard.scmtools.errors import (AuthenticationError,
                                          FileNotFoundError,
                                          SCMError)
+from reviewboard.scmtools.svn import base
 
 
-class Client(object):
+class Client(base.Client):
     required_module = 'pysvn'
 
-    AUTHOR_KEYWORDS = ['Author', 'LastChangedBy']
-    DATE_KEYWORDS = ['Date', 'LastChangedDate']
-    REVISION_KEYWORDS = ['Revision', 'LastChangedRevision', 'Rev']
-    URL_KEYWORDS = ['HeadURL', 'URL']
-    ID_KEYWORDS = ['Id']
-    HEADER_KEYWORDS = ['Header']
-
-    # Mapping of keywords to known aliases
-    keywords = {
-        # Standard keywords
-        'Author':              AUTHOR_KEYWORDS,
-        'Date':                DATE_KEYWORDS,
-        'Revision':            REVISION_KEYWORDS,
-        'HeadURL':             URL_KEYWORDS,
-        'Id':                  ID_KEYWORDS,
-        'Header':              HEADER_KEYWORDS,
-
-        # Aliases
-        'LastChangedBy':       AUTHOR_KEYWORDS,
-        'LastChangedDate':     DATE_KEYWORDS,
-        'LastChangedRevision': REVISION_KEYWORDS,
-        'Rev':                 REVISION_KEYWORDS,
-        'URL':                 URL_KEYWORDS,
-    }
-
     def __init__(self, config_dir, repopath, username=None, password=None):
-        self.repopath = repopath
+        super(Client, self).__init__(config_dir, repopath, username, password)
         self.client = pysvn.Client(config_dir)
 
         if username:
@@ -237,35 +212,6 @@ class Client(object):
     def get_keywords(self, path, revision=HEAD):
         return self._do_on_path(self._get_file_keywords, path, revision)
 
-    def collapse_keywords(self, data, keyword_str):
-        """
-        Collapse SVN keywords in string.
-
-        SVN allows for several keywords (such as $Id$ and $Revision$) to
-        be expanded, though these keywords are limited to a fixed set
-        (and associated aliases) and must be enabled per-file.
-
-        Keywords can take two forms: $Keyword$ and $Keyword::     $
-        The latter allows the field to take a fixed size when expanded.
-
-        When we cat a file on SVN, the keywords come back expanded, which
-        isn't good for us as we need to diff against the collapsed version.
-        This function makes that transformation.
-        """
-        def repl(m):
-            if m.group(2):
-                return "$%s::%s$" % (m.group(1), " " * len(m.group(3)))
-
-            return "$%s$" % m.group(1)
-
-        # Get any aliased keywords
-        keywords = [keyword
-                    for name in re.split(r'\W+', keyword_str)
-                    for keyword in self.keywords.get(name, [])]
-
-        return re.sub(r"\$(%s):(:?)([^\$\n\r]*)\$" % '|'.join(keywords),
-                      repl, data)
-
     def get_filenames_in_revision(self, revision):
         r = self.__normalize_revision(revision)
         logs = self.client.log(self.repopath, r, r, True)
@@ -299,16 +245,6 @@ class Client(object):
             'root_url': info[0][1].repos_root_URL,
             'url': info[0][1].URL
         }
-
-    def normalize_path(self, path):
-        if path.startswith(self.repopath):
-            return path
-        elif path.startswith('//'):
-            return self.repopath + path[1:]
-        elif path[0] == '/':
-            return self.repopath + path
-        else:
-            return self.repopath + "/" + path
 
     def ssl_certificate(self, path, on_failure=None):
         cert = {}
