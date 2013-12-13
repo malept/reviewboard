@@ -50,7 +50,7 @@ class Tool(models.Model):
             module, attr = path[:i], path[i + 1:]
 
             try:
-                mod = __import__(module, {}, {}, [attr])
+                mod = __import__(bytes(module), {}, {}, [bytes(attr)])
             except ImportError as e:
                 raise ImproperlyConfigured(
                     'Error importing SCM Tool %s: "%s"' % (module, e))
