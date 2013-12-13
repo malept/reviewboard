@@ -39,6 +39,9 @@ class Client(object):
 
     @property
     def branches(self):
+        """Returns a list of branches.
+
+        This assumes the standard layout in the repository."""
         raise NotImplementedError
 
     def get_commits(self, start):

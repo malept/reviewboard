@@ -335,7 +335,36 @@ Subversion
 ----------
 
 To use Review Board with Subversion_, you'll need both subversion and
-PySVN_ installed.
+either subvertpy_ or PySVN_ installed.
+
+
+.. _Subversion: http://subversion.tigris.org/
+.. _subvertpy: http://samba.org/~jelmer/subvertpy/
+.. _PySVN: http://pysvn.tigris.org/
+
+subvertpy
+~~~~~~~~~
+
+To install on Debian_ or Ubuntu_, type::
+
+    $ apt-get install python-subvertpy
+
+To install on Fedora_, type::
+
+    $ yum install python-subvertpy
+
+If your distribution doesn't provide subvertpy, you can install it by
+installing the development packages for Python and subversion, and then
+either via pip, by typing::
+
+    $ pip install subvertpy
+
+...or via easy_install, by typing::
+
+    $ easy_install subvertpy
+
+PySVN
+~~~~~
 
 To install on Debian_ or Ubuntu_, type::
 
@@ -353,10 +382,6 @@ install PySVN from scratch. To install Subversion, type::
 If your distribution doesn't provide PySVN, you can install it by
 `downloading <http://pysvn.tigris.org/project_downloads.html>`_ the latest
 release and following the instructions in the provided :file:`INSTALL.html`.
-
-
-.. _Subversion: http://subversion.tigris.org/
-.. _PySVN: http://pysvn.tigris.org/
 
 
 .. _linux-installing-amazon-s3-support:

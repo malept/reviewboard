@@ -115,7 +115,7 @@ class Client(base.Client):
         results = []
 
         # We fetch one more commit than we care about, because the entries in
-        # the svn log don't include the parent revision.
+        # the svn log doesn't include the parent revision.
         for i in range(len(commits) - 1):
             commit = commits[i]
             parent = commits[i + 1]
