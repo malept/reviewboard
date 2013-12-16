@@ -613,7 +613,7 @@ class SubversionTests(SCMTestCase):
         try:
             self.tool = self.repository.get_scmtool()
         except ImportError:
-            raise nose.SkipTest('pysvn is not installed')
+            raise nose.SkipTest('Neither pysvn nor subvertpy is installed')
 
     def test_ssh(self):
         """Testing a SSH-backed Subversion repository"""

@@ -7,9 +7,16 @@ from datetime import datetime
 from shutil import rmtree
 from tempfile import mkdtemp
 
-import pysvn
-from pysvn import (ClientError, Revision, opt_revision_kind,
-                   SVN_DIRENT_CREATED_REV)
+try:
+    import pysvn
+    from pysvn import (ClientError, Revision, opt_revision_kind,
+                       SVN_DIRENT_CREATED_REV)
+    imported_dependency = True
+except ImportError:
+    # This try-except block is here for the sole purpose of avoiding
+    # exceptions with nose if pysvn isn't installed when someone runs
+    # the testsuite.
+    imported_dependency = False
 
 from django.core.cache import cache
 from django.utils.translation import ugettext as _

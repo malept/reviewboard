@@ -3,8 +3,15 @@ from __future__ import absolute_import, unicode_literals
 
 import os
 
-from subvertpy import ra, SubversionException
-from subvertpy.client import Client as SVNClient, get_config
+try:
+    from subvertpy import ra, SubversionException
+    from subvertpy.client import Client as SVNClient, get_config
+    imported_dependency = True
+except ImportError:
+    # This try-except block is here for the sole purpose of avoiding
+    # exceptions with nose if subvertpy isn't installed when someone runs
+    # the testsuite.
+    imported_dependency = False
 
 from django.core.cache import cache
 from djblets.util.compat import six
