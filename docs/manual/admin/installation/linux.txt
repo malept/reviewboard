@@ -362,11 +362,7 @@ EPEL, add its repository, then type::
 
 If your distribution doesn't provide subvertpy, you can install it by
 installing the development packages for Python and subversion, and then
-either via pip, by typing::
-
-    $ pip install subvertpy
-
-...or via easy_install, by typing::
+the package itself via easy_install, by typing::
 
     $ easy_install subvertpy
 

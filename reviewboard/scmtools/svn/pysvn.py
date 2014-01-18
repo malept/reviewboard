@@ -113,6 +113,7 @@ class Client(base.Client):
         return results
 
     def get_commits(self, start):
+        """Returns a list of commits."""
         commits = self.client.log(
             self.repopath,
             revision_start=Revision(opt_revision_kind.number,
@@ -209,6 +210,7 @@ class Client(base.Client):
         return data
 
     def get_file(self, path, revision=HEAD):
+        """Returns the contents of a given file at the given revision."""
         return self._do_on_path(self._get_file_data, path, revision)
 
     def _get_file_keywords(self, normpath, normrev):
@@ -217,9 +219,11 @@ class Client(base.Client):
         return keywords.get(normpath)
 
     def get_keywords(self, path, revision=HEAD):
+        """Returns a list of SVN keywords for a given path."""
         return self._do_on_path(self._get_file_keywords, path, revision)
 
     def get_filenames_in_revision(self, revision):
+        """Returns a list of filenames associated with the revision."""
         r = self.__normalize_revision(revision)
         logs = self.client.log(self.repopath, r, r, True)
 
@@ -242,6 +246,12 @@ class Client(base.Client):
 
     @property
     def repository_info(self):
+        """Returns metadata about the repository:
+
+        * UUID
+        * Root URL
+        * URL
+        """
         try:
             info = self.client.info2(self.repopath, recurse=False)
         except ClientError as e:

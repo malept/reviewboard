@@ -45,15 +45,22 @@ class Client(object):
         raise NotImplementedError
 
     def get_commits(self, start):
+        """Returns a list of commits."""
         raise NotImplementedError
 
     def get_change(self, revision, cache_key):
+        """Get an individual change.
+
+        This returns a tuple with the commit message and the diff contents.
+        """
         raise NotImplementedError
 
     def get_file(self, path, revision=HEAD):
+        """Returns the contents of a given file at the given revision."""
         raise NotImplementedError
 
     def get_keywords(self, path, revision=HEAD):
+        """Returns a list of SVN keywords for a given path."""
         raise NotImplementedError
 
     def collapse_keywords(self, data, keyword_str):
@@ -86,10 +93,17 @@ class Client(object):
                       repl, data)
 
     def get_filenames_in_revision(self, revision):
+        """Returns a list of filenames associated with the revision."""
         raise NotImplementedError
 
     @property
     def repository_info(self):
+        """Returns metadata about the repository:
+
+        * UUID
+        * Root URL
+        * URL
+        """
         raise NotImplementedError
 
     def normalize_path(self, path):

@@ -49,6 +49,9 @@ class Client(base.Client):
 
     @property
     def branches(self):
+        """Returns a list of branches.
+
+        This assumes the standard layout in the repository."""
         results = []
         try:
             dirents = self.ra.get_dir(B('.'), -1, ra.DIRENT_CREATED_REV)[0]
@@ -71,6 +74,7 @@ class Client(base.Client):
         return results
 
     def get_commits(self, start):
+        """Returns a list of commits."""
         results = []
 
         if start.isdigit():
@@ -88,6 +92,10 @@ class Client(base.Client):
         return results
 
     def get_change(self, revision, cache_key):
+        """Get an individual change.
+
+        This returns a tuple with the commit message and the diff contents.
+        """
         revision = int(revision)
 
         commit = cache.get(cache_key)
@@ -117,6 +125,7 @@ class Client(base.Client):
         return commit
 
     def get_file(self, path, revision=HEAD):
+        """Returns the contents of a given file at the given revision."""
         if not path:
             raise FileNotFoundError(path, revision)
         revnum = self._normalize_revision(revision)
@@ -133,6 +142,7 @@ class Client(base.Client):
         return contents
 
     def get_keywords(self, path, revision=HEAD):
+        """Returns a list of SVN keywords for a given path."""
         revnum = self._normalize_revision(revision, negatives_allowed=False)
         path = self.normalize_path(path)
         return self.client.propget(SVN_KEYWORDS, path, None, revnum).get(path)
@@ -149,6 +159,7 @@ class Client(base.Client):
         return revnum
 
     def get_filenames_in_revision(self, revision):
+        """Returns a list of filenames associated with the revision."""
         paths = None
 
         def log_cb(changed_paths, rev, props, has_children=False):
@@ -163,6 +174,12 @@ class Client(base.Client):
 
     @property
     def repository_info(self):
+        """Returns metadata about the repository:
+
+        * UUID
+        * Root URL
+        * URL
+        """
         try:
             base = os.path.basename(self.repopath)
             info = self.client.info(self.repopath, 'HEAD')[base]

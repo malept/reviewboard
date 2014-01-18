@@ -19,7 +19,7 @@ from reviewboard.scmtools.errors import (AuthenticationError,
 from reviewboard.scmtools.svn.subvertpy import Client, imported_dependency
 if not imported_dependency:  # not installed/couldn't be imported
     from reviewboard.scmtools.svn.pysvn import (
-        Client, imported_dependency)  # NOQA
+        Client, imported_dependency)
 from reviewboard.ssh import utils as sshutils
 
 
@@ -124,7 +124,6 @@ class SVNTool(SCMTool):
 
     def get_commits(self, start):
         """Return a list of commits."""
-
         return self.client.get_commits(start)
 
     def get_change(self, revision):
@@ -288,10 +287,8 @@ class SVNTool(SCMTool):
     def build_client(cls, repopath, username=None, password=None,
                      local_site_name=None):
         if not imported_dependency:
-            msg = '''
-Could not import subvertpy or pysvn, needed for SVN integration
-'''.strip()
-            raise ImportError(msg)
+            raise ImportError(_(
+                'SVN integration requires either subvertpy or pysvn'))
         config_dir = os.path.join(os.path.expanduser('~'), '.subversion')
 
         if local_site_name:
