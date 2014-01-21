@@ -116,5 +116,15 @@ class Client(object):
         else:
             return self.repopath + "/" + path
 
-    def ssl_certificate(self, path, on_failure=None):
+    def accept_ssl_certificate(self, path, on_failure=None):
+        """If the repository uses SSL, this method is used to determine whether
+        the SSL certificate can be automatically accepted.
+
+        If the cert cannot be accepted, the ``on_failure`` callback
+        is executed.
+
+        ``on_failure`` signature::
+
+            void on_failure(e:Exception, path:str, cert:dict)
+        """
         raise NotImplementedError

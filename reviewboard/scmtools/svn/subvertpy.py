@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, unicode_literals
 
+import logging
 import os
 
 try:
@@ -37,15 +38,29 @@ class Client(base.Client):
         super(Client, self).__init__(config_dir, repopath, username, password)
         self.repopath = B(self.repopath)
         self.config_dir = B(config_dir)
-        self.auth = ra.Auth([ra.get_simple_provider(),
-                             ra.get_username_provider()])
+        auth_providers = [
+            ra.get_simple_provider(),
+            ra.get_username_provider(),
+        ]
+        if repopath.startswith('https:'):
+            auth_providers.append(
+                ra.get_ssl_server_trust_prompt_provider(self.ssl_trust_prompt))
+        self.auth = ra.Auth(auth_providers)
         if username:
             self.auth.set_parameter(B('svn:auth:username'), B(username))
         if password:
             self.auth.set_parameter(B('svn:auth:password'), B(password))
-        self.ra = ra.RemoteAccess(self.repopath, auth=self.auth)
         cfg = get_config(self.config_dir)
         self.client = SVNClient(cfg, auth=self.auth)
+
+    @property
+    def ra(self):
+        """Lazily creates the ``RemoteAccess`` object so
+        ``accept_ssl_certificate`` works properly.
+        """
+        if not hasattr(self, '_ra'):
+            self._ra = ra.RemoteAccess(self.repopath, auth=self.auth)
+        return self._ra
 
     @property
     def branches(self):
@@ -192,5 +207,83 @@ class Client(base.Client):
             'url': info.url
         }
 
-    def ssl_certificate(self, path, on_failure=None):
-        '''Not sure we need this in subvertpy...'''
+    def ssl_trust_prompt(self, realm, failures, certinfo, may_save):
+        """
+        Callback for ``subvertpy.ra.get_ssl_server_trust_prompt_provider``.
+        ``may_save`` indicates whether to save the cert info for
+        subsequent requests.
+
+        Calls ``callback_ssl_server_trust_prompt`` if it exists.
+
+        :param certinfo: (hostname, fingerprint, valid_from, valid_until,
+                          issuer_dname, ascii_cert)
+        :return: (accepted_failures, may_save)
+        """
+        if hasattr(self, 'callback_ssl_server_trust_prompt'):
+            trust_dict = {
+                'realm': realm,
+                'failures': failures,
+                'hostname': certinfo[0],
+                'finger_print': certinfo[1],
+                'valid_from': certinfo[2],
+                'valid_until': certinfo[3],
+                'issuer_dname': certinfo[4],
+            }
+            return self.callback_ssl_server_trust_prompt(trust_dict)[1:]
+        else:
+            return None
+
+    def _accept_trust_prompt(self, realm, failures, certinfo, may_save):
+        """
+        Callback for ``subvertpy.ra.get_ssl_server_trust_prompt_provider``.
+        ``may_save`` indicates whether to save the cert info for
+        subsequent requests.
+
+        USED ONLY FOR ``accept_ssl_certificate``.
+
+        :param certinfo: (hostname, fingerprint, valid_from, valid_until,
+                            issuer_dname, ascii_cert)
+        :return: (accepted_failures, may_save)
+        """
+        self._accept_cert.update({
+            'realm': realm,
+            'failures': failures,
+            'hostname': certinfo[0],
+            'finger_print': certinfo[1],
+            'valid_from': certinfo[2],
+            'valid_until': certinfo[3],
+            'issuer_dname': certinfo[4],
+        })
+        if self._accept_on_failure:
+            return None
+        else:
+            return failures, True
+
+    def accept_ssl_certificate(self, path, on_failure=None):
+        """If the repository uses SSL, this method is used to determine whether
+        the SSL certificate can be automatically accepted.
+
+        If the cert cannot be accepted, the ``on_failure`` callback
+        is executed.
+
+        ``on_failure`` signature::
+
+            void on_failure(e:Exception, path:str, cert:dict)
+        """
+        self._accept_cert = {}
+        self._accept_on_failure = on_failure
+
+        auth = ra.Auth([
+            ra.get_simple_provider(),
+            ra.get_username_provider(),
+            ra.get_ssl_server_trust_prompt_provider(self._accept_trust_prompt),
+        ])
+        cfg = get_config(self.config_dir)
+        client = SVNClient(cfg, auth)
+        try:
+            info = client.info(path)
+            logging.debug('SVN: Got repository information for %s: %s' %
+                          (path, info))
+        except SubversionException as e:
+            if on_failure:
+                on_failure(e, path, self._accept_cert)

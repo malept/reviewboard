@@ -263,7 +263,17 @@ class Client(base.Client):
             'url': info[0][1].URL
         }
 
-    def ssl_certificate(self, path, on_failure=None):
+    def accept_ssl_certificate(self, path, on_failure=None):
+        """If the repository uses SSL, this method is used to determine whether
+        the SSL certificate can be automatically accepted.
+
+        If the cert cannot be accepted, the ``on_failure`` callback
+        is executed.
+
+        ``on_failure`` signature::
+
+            void on_failure(e:Exception, path:str, cert:dict)
+        """
         cert = {}
 
         def ssl_server_trust_prompt(trust_dict):
@@ -282,4 +292,4 @@ class Client(base.Client):
                           (path, info))
         except ClientError as e:
             if on_failure:
-                on_failure(e, cert)
+                on_failure(e, path, cert)

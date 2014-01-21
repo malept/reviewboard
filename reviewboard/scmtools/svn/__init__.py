@@ -218,6 +218,45 @@ class SVNTool(SCMTool):
 
         return saved_cert == cert, trust_dict['failures'], False
 
+    @staticmethod
+    def on_ssl_failure(e, path, cert_data):
+        logging.error('SVN: Failed to get repository information '
+                      'for %s: %s' % (path, e))
+
+        if 'callback_get_login required' in six.text_type(e):
+            raise AuthenticationError(msg="Authentication failed")
+
+        if cert_data:
+            failures = cert_data['failures']
+
+            reasons = []
+
+            if failures & SVNCertificateFailures.NOT_YET_VALID:
+                reasons.append(_('The certificate is not yet valid.'))
+
+            if failures & SVNCertificateFailures.EXPIRED:
+                reasons.append(_('The certificate has expired.'))
+
+            if failures & SVNCertificateFailures.CN_MISMATCH:
+                reasons.append(_('The certificate hostname does not '
+                                 'match.'))
+
+            if failures & SVNCertificateFailures.UNKNOWN_CA:
+                reasons.append(_('The certificate is not issued by a '
+                                 'trusted authority. Use the fingerprint '
+                                 'to validate the certificate manually.'))
+
+            raise UnverifiedCertificateError(
+                Certificate(valid_from=cert_data['valid_from'],
+                            valid_until=cert_data['valid_until'],
+                            hostname=cert_data['hostname'],
+                            realm=cert_data['realm'],
+                            fingerprint=cert_data['finger_print'],
+                            issuer=cert_data['issuer_dname'],
+                            failures=reasons))
+
+        raise RepositoryNotFoundError()
+
     @classmethod
     def check_repository(cls, path, username=None, password=None,
                          local_site_name=None):
@@ -235,53 +274,15 @@ class SVNTool(SCMTool):
         super(SVNTool, cls).check_repository(path, username, password,
                                              local_site_name)
 
-        def on_ssl_failure(e, cert_data):
-            logging.error('SVN: Failed to get repository information '
-                          'for %s: %s' % (path, e))
-
-            if 'callback_get_login required' in six.text_type(e):
-                raise AuthenticationError(msg="Authentication failed")
-
-            if cert_data:
-                failures = cert_data['failures']
-
-                reasons = []
-
-                if failures & SVNCertificateFailures.NOT_YET_VALID:
-                    reasons.append(_('The certificate is not yet valid.'))
-
-                if failures & SVNCertificateFailures.EXPIRED:
-                    reasons.append(_('The certificate has expired.'))
-
-                if failures & SVNCertificateFailures.CN_MISMATCH:
-                    reasons.append(_('The certificate hostname does not '
-                                     'match.'))
-
-                if failures & SVNCertificateFailures.UNKNOWN_CA:
-                    reasons.append(_('The certificate is not issued by a '
-                                     'trusted authority. Use the fingerprint '
-                                     'to validate the certificate manually.'))
-
-                raise UnverifiedCertificateError(
-                    Certificate(valid_from=cert_data['valid_from'],
-                                valid_until=cert_data['valid_until'],
-                                hostname=cert_data['hostname'],
-                                realm=cert_data['realm'],
-                                fingerprint=cert_data['finger_print'],
-                                issuer=cert_data['issuer_dname'],
-                                failures=reasons))
-
-            raise RepositoryNotFoundError()
-
         client = cls.build_client(path, local_site_name=local_site_name)[1]
-        client.ssl_certificate(path, on_ssl_failure)
+        client.accept_ssl_certificate(path, cls.on_ssl_failure)
 
     @classmethod
     def accept_certificate(cls, path, local_site_name=None, certificate=None):
         """Accepts the certificate for the given repository path."""
         client = cls.build_client(path, local_site_name=local_site_name)[1]
 
-        return client.ssl_certificate(path)
+        return client.accept_ssl_certificate(path)
 
     @classmethod
     def build_client(cls, repopath, username=None, password=None,
